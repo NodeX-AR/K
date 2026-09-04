@@ -1,6 +1,6 @@
 [Setup]
 AppName=K Language
-AppVersion=1.0.0
+AppVersion=1.1.0
 DefaultDirName={pf}\K Language
 DefaultGroupName=K Language
 UninstallDisplayIcon={app}\k.exe
