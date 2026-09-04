@@ -1,0 +1,22 @@
+# A more aggressive variant of Dockerfile.k: static-links against musl and
+# ships from `scratch` (no base OS at all) for the smallest possible
+# image. Same "not measured here" caveat as Dockerfile.k applies — build
+# and measure it yourself before quoting a size.
+#
+# This is more fragile than Dockerfile.k: some crates need extra flags to
+# cross-compile cleanly against musl, and this hasn't been build-tested
+# in an environment with network/Docker access. Treat it as a documented
+# starting point, not a guaranteed-working artifact — if it doesn't build
+# cleanly, `Dockerfile.k` (glibc-based, debian-slim) is the safer default.
+
+FROM rust:1-slim AS builder
+RUN rustup target add x86_64-unknown-linux-musl
+RUN apt-get update && apt-get install -y musl-tools && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY . .
+RUN cargo build --release --no-default-features --target x86_64-unknown-linux-musl
+
+FROM scratch
+COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/k /k
+ENTRYPOINT ["/k"]
+CMD ["--help"]
