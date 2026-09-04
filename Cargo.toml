@@ -6,10 +6,20 @@ license = "MIT"
 description = "K - a self-contained, general-purpose programming language with first-class matrix syntax and a built-in IDE."
 
 [dependencies]
-eframe = "0.24.1"
-image = "0.24"
+eframe = { version = "0.24.1", optional = true }
+image = { version = "0.24", optional = true }
+rfd = { version = "0.14", optional = true }
 rustyline = "14.0"
-rfd = "0.14"
+
+[features]
+# The GUI (`k gui`) pulls in eframe/rfd/image — a real chunk of a release
+# binary's size, almost entirely on behalf of a subcommand a container/CI
+# use of K will never call. Default-on so `cargo build --release` still
+# gives newcomers the IDE out of the box, but a size-conscious build (a
+# Docker base image, a CI cache) can drop it with
+# `cargo build --release --no-default-features` and get the CLI/REPL only.
+default = ["gui"]
+gui = ["dep:eframe", "dep:image", "dep:rfd"]
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "windef", "wincon", "fileapi", "handleapi", "processenv", "winbase", "winnt"] }
