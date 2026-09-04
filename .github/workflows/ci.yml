@@ -1,0 +1,52 @@
+name: CI
+
+# Runs on every push/PR — separate from release.yml, which only builds
+# installers on version tags. This workflow exists to catch build
+# breakage and test regressions immediately, not just at release time.
+#
+# NOTE on binary size gates: a size-ceiling job (failing the build if the
+# release binary grows past a fixed limit) was intentionally left out of
+# this workflow. A meaningful ceiling needs a real measured baseline
+# first (see docs/SPEC.md and README.md's performance notes — none of
+# the size numbers floating around are confirmed for the current
+# dependency set), and a ceiling set without one is either meaningless
+# (too loose) or a source of noisy false failures (too tight, or set on
+# a build from a different Rust version/target than CI actually uses).
+# Add it once someone has run `cargo build --release` (and, for the
+# no-GUI configuration, `--no-default-features`) on real CI hardware and
+# recorded the resulting sizes.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build (default features, includes GUI)
+        run: cargo build --release
+
+      - name: Build (CLI-only, --no-default-features)
+        run: cargo build --release --no-default-features
+
+      - name: Run K test suite
+        run: ./target/release/k test tests/
+        shell: bash
+
+      - name: Run example scripts (smoke test — must not error)
+        run: |
+          for f in examples/*.k; do
+            echo "--- $f ---"
+            ./target/release/k "$f"
+          done
+        shell: bash
